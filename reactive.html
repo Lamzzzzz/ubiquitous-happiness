@@ -1,0 +1,71 @@
+<script>
+    'use strict'
+    let activeEffect
+
+    class Dep {
+        constructor(value) {
+            this.subscribers = new Set()
+        }
+
+        depend() {
+            if (activeEffect) {
+                this.subscribers.add(activeEffect)
+            }
+        }
+        notify() {
+            this.subscribers.forEach((effect) => {
+                effect()
+            })
+        }
+    }
+
+    const dep = new Dep()
+
+    const targetMap = new WeakMap()
+
+    function getDeps(target, key) {
+        let depsMap = targetMap.get(target)
+        if (!depsMap) {
+            targetMap.set(target, (depsMap = new Map()))
+        }
+        let deps = depsMap.get(key)
+        if (!deps) {
+            depsMap.set(key, (deps = new Set()))
+        }
+        return deps
+    }
+
+    const reactiveHandlers = {
+        get(target, key, receiver) {
+            if (activeEffect) {
+                const deps = getDeps(target, key)
+                deps.add(activeEffect)
+            }
+            return Reflect.get(...arguments)
+        },
+        set(target, key, value, receiver) {
+            const deps = getDeps(target, key)
+            const result = Reflect.set(...arguments)
+            if (result) deps.forEach((effect) => effect())
+            return result
+        },
+    }
+
+    function reactive(raw) {
+        return new Proxy(raw, reactiveHandlers)
+    }
+
+    function watchEffect(effect) {
+        activeEffect = effect
+        effect()
+        activeEffect = null
+    }
+
+    const state = reactive({ count: 0 })
+
+    watchEffect(() => {
+        console.log(state.count)
+    })
+
+    state.count++
+</script>

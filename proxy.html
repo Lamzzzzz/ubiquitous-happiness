@@ -1,0 +1,13 @@
+<script>
+    'use strict'
+    const arr = new Proxy([1, 2], {
+        get() {
+            console.log('get trap')
+            return Reflect.get(...arguments)
+        },
+        set() {
+            console.log('set trap')
+            return Reflect.set(...arguments)
+        },
+    })
+</script>
